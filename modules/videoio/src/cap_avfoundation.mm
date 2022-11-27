@@ -110,7 +110,7 @@ class CvCaptureCAM : public CvCapture {
         AVCaptureDevice 						*mCaptureDevice;
         CaptureDelegate							*capture;
 
-        int startCaptureDevice(int cameraNum);
+        int startCaptureDevice(int cameraNum, int capWidth = 0);
         void stopCaptureDevice();
 
         void setWidthHeight();
@@ -328,7 +328,7 @@ void CvCaptureCAM::stopCaptureDevice() {
 
 }
 
-int CvCaptureCAM::startCaptureDevice(int cameraNum) {
+int CvCaptureCAM::startCaptureDevice(int cameraNum, int capWidth) {
     NSAutoreleasePool* localpool = [[NSAutoreleasePool alloc] init];
 
     capture = [[CaptureDelegate alloc] init];
@@ -403,7 +403,26 @@ int CvCaptureCAM::startCaptureDevice(int cameraNum) {
         //Slow. 1280*720 for iPhone4, iPod back camera. 640*480 for front camera
         //mCaptureSession.sessionPreset = AVCaptureSessionPresetHigh; // fps ~= 5 slow for OpenCV
 
-        mCaptureSession.sessionPreset = AVCaptureSessionPresetMedium; //480*360
+        if (capWidth <= 352) {
+            mCaptureSession.sessionPreset = AVCaptureSessionPreset352x288;
+            std::cout << "startCaptureDevice - starting with 352x288" << std::endl;
+        }
+        else if (capWidth <= 640) {
+            mCaptureSession.sessionPreset = AVCaptureSessionPreset640x480;
+            std::cout << "startCaptureDevice - starting with 640x480" << std::endl;
+        }
+        else if (capWidth <= 1280) {
+            mCaptureSession.sessionPreset = AVCaptureSessionPreset1280x720;
+            std::cout << "startCaptureDevice - starting with 1280x720" << std::endl;
+        }
+        else if (capWidth > 1280) {
+            mCaptureSession.sessionPreset = AVCaptureSessionPresetHigh;
+            std::cout << "startCaptureDevice - starting with 1920x1080" << std::endl;
+        }
+        else {
+            mCaptureSession.sessionPreset = AVCaptureSessionPresetMedium; //480*360
+        }
+        
         if (width == 0 ) width = 480;
         if (height == 0 ) height = 360;
 
@@ -540,6 +559,10 @@ bool CvCaptureCAM::setProperty(int property_id, double value) {
         case CV_CAP_PROP_FRAME_WIDTH:
             width = value;
             settingWidth = 1;
+            if (value!=0) {
+                startCaptureDevice(0, value);
+            }
+            
             if (settingWidth && settingHeight) {
                 setWidthHeight();
                 settingWidth =0;
@@ -550,6 +573,19 @@ bool CvCaptureCAM::setProperty(int property_id, double value) {
         case CV_CAP_PROP_FRAME_HEIGHT:
             height = value;
             settingHeight = 1;
+            if (value <= 288) {
+                startCaptureDevice(0, 352);
+            }
+            else if (value <= 480) {
+                startCaptureDevice(0, 640);
+            }
+            else if (value <= 720) {
+                startCaptureDevice(0, 1280);
+            }
+            else if (value > 720) {
+                startCaptureDevice(0, 1080);
+            }
+            
             if (settingWidth && settingHeight) {
                 setWidthHeight();
                 settingWidth =0;
