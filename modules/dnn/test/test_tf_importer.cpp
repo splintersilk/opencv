@@ -337,6 +337,12 @@ TEST_P(Test_TensorFlow_layers, eltwise_mul_vec)
     runTensorFlowNet("eltwise_mul_vec");
 }
 
+TEST_P(Test_TensorFlow_layers, tf_reshape_nhwc)
+{
+    if (backend == DNN_BACKEND_INFERENCE_ENGINE_NN_BUILDER_2019)
+        applyTestTag(CV_TEST_TAG_DNN_SKIP_IE_NN_BUILDER);
+    runTensorFlowNet("tf_reshape_nhwc");
+}
 
 TEST_P(Test_TensorFlow_layers, channel_broadcast)
 {
@@ -1336,7 +1342,7 @@ TEST_P(Test_TensorFlow_nets, EAST_text_detection)
     }
     else
     {
-        l1_geometry = 1e-4, lInf_geometry = 3e-3;
+        l1_geometry = 1e-4, lInf_geometry = 4.3e-3;
     }
     normAssert(scores, blobFromNPY(refScoresPath), "scores", l1_scores, lInf_scores);
     normAssert(geometry, blobFromNPY(refGeometryPath), "geometry", l1_geometry, lInf_geometry);

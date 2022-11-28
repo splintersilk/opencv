@@ -113,6 +113,8 @@ set(gapi_srcs
     src/compiler/passes/intrin.cpp
 
     # Executor
+    src/executor/gabstractexecutor.cpp
+    src/executor/gabstractstreamingexecutor.cpp
     src/executor/gexecutor.cpp
     src/executor/gtbbexecutor.cpp
     src/executor/gstreamingexecutor.cpp
@@ -176,6 +178,7 @@ set(gapi_srcs
 
     # Python bridge
     src/backends/ie/bindings_ie.cpp
+    src/backends/onnx/bindings_onnx.cpp
     src/backends/python/gpythonbackend.cpp
 
     # OpenVPL Streaming source
@@ -185,6 +188,7 @@ set(gapi_srcs
     src/streaming/onevpl/cfg_params.cpp
     src/streaming/onevpl/cfg_params_parser.cpp
     src/streaming/onevpl/utils.cpp
+    src/streaming/onevpl/default.cpp
     src/streaming/onevpl/data_provider_interface_exception.cpp
     src/streaming/onevpl/accelerators/surface/base_frame_adapter.cpp
     src/streaming/onevpl/accelerators/surface/cpu_frame_adapter.cpp
@@ -315,25 +319,23 @@ if(HAVE_GAPI_ONEVPL)
   ocv_target_compile_definitions(${the_module} PRIVATE -DHAVE_ONEVPL)
   ocv_target_link_libraries(${the_module} PRIVATE ${VPL_IMPORTED_TARGETS})
 
+  if(HAVE_DIRECTX AND HAVE_D3D11)
+    ocv_target_link_libraries(${the_module} PRIVATE d3d11 dxgi)
+  endif()
+  if(WIN32)
+    ocv_target_link_libraries(${the_module} PRIVATE mf mfuuid mfplat shlwapi mfreadwrite)
+  endif()
   if(HAVE_D3D11 AND HAVE_OPENCL)
     ocv_target_include_directories(${the_module} SYSTEM PRIVATE ${OPENCL_INCLUDE_DIRS})
   endif()
 
-  if(UNIX)
-    find_package(PkgConfig)
-    if(PkgConfig_FOUND)
-      pkg_check_modules(PKG_LIBVA libva>=1.2 libva-drm>=1.2)
-      if(PKG_LIBVA_FOUND)
-        set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
-        set(THREADS_PREFER_PTHREAD_FLAG TRUE)
-        find_package(Threads REQUIRED)
-      else()
-        message(FATAL_ERROR "libva not found: building HAVE_GAPI_ONEVPL without libVA support is impossible on UNIX systems")
-      endif()
-    else()
-      message(FATAL_ERROR "PkgConfig not found: building HAVE_GAPI_ONEVPL without libVA support is impossible on UNIX systems")
+  if(UNIX AND HAVE_VA)
+    ocv_target_include_directories(${the_module} SYSTEM PRIVATE ${VA_INCLUDE_DIR})
+    ocv_target_link_libraries(${the_module} PRIVATE ${VA_LIBRARIES})
+    if(TARGET opencv_test_gapi)
+      ocv_target_include_directories(opencv_test_gapi SYSTEM PRIVATE ${VA_INCLUDE_DIR})
+      ocv_target_link_libraries(opencv_test_gapi PRIVATE ${VA_LIBRARIES})
     endif()
-    ocv_target_link_libraries(${the_module} PRIVATE ${PKG_LIBVA_LIBRARIES} ${PKG_THREAD_LIBRARIES})
   endif()
 endif()
 
@@ -366,12 +368,20 @@ ocv_add_samples()
 
 
 # Required for sample with inference on host
-if(TARGET example_gapi_onevpl_infer_single_roi)
+if(TARGET example_gapi_onevpl_infer_with_advanced_device_selection)
   if(TARGET ocv.3rdparty.openvino AND OPENCV_GAPI_WITH_OPENVINO)
-    ocv_target_link_libraries(example_gapi_onevpl_infer_single_roi PRIVATE ocv.3rdparty.openvino)
+    ocv_target_link_libraries(example_gapi_onevpl_infer_with_advanced_device_selection PRIVATE ocv.3rdparty.openvino)
+  endif()
+  if(HAVE_DIRECTX AND HAVE_D3D11)
+    ocv_target_link_libraries(example_gapi_onevpl_infer_with_advanced_device_selection PRIVATE d3d11 dxgi)
   endif()
   if(HAVE_D3D11 AND HAVE_OPENCL)
-    ocv_target_include_directories(example_gapi_onevpl_infer_single_roi SYSTEM PRIVATE ${OPENCL_INCLUDE_DIRS})
+    ocv_target_include_directories(example_gapi_onevpl_infer_with_advanced_device_selection SYSTEM PRIVATE ${OPENCL_INCLUDE_DIRS})
+  endif()
+  if(UNIX AND HAVE_VA)
+    message ("GAPI VPL samples with VAAPI")
+    ocv_target_include_directories(example_gapi_onevpl_infer_with_advanced_device_selection SYSTEM PRIVATE ${VA_INCLUDE_DIR})
+    ocv_target_link_libraries(example_gapi_onevpl_infer_with_advanced_device_selection PRIVATE ${VA_LIBRARIES})
   endif()
 endif()
 
