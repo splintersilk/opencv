@@ -110,7 +110,7 @@ class CvCaptureCAM : public CvCapture {
         AVCaptureDevice 						*mCaptureDevice;
         CaptureDelegate							*capture;
 
-        int startCaptureDevice(int cameraNum, int capWidth = 0);
+        int startCaptureDevice(int cameraNum, int capWidth = 1280);
         void stopCaptureDevice();
 
         void setWidthHeight();
